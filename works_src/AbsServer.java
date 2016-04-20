@@ -1,10 +1,11 @@
+package networkPrivate.android;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 public abstract class AbsServer{
 	//Send to innerClass
 	int num = 0;
-	Socket soc;
+	Socket sock;
 	//Status
 	public ArrayList<Socket> socketList = new ArrayList<Socket>();
 	public ServerSocket serverSocket;
@@ -31,7 +32,7 @@ public abstract class AbsServer{
 		serverSocket = new ServerSocket(port, limit, ip);
 	}
 	
-	//Disp configration
+	//Return configration
 	public String toString(){
 		String conf = "\n---Server information---\n";
 		conf += "Use Port Number\t:" + port + "\n";
@@ -46,36 +47,35 @@ public abstract class AbsServer{
 		try{
 			System.out.println("Waiting for first connection...");
 			while(true){
-				soc = serverSocket.accept();		//---Start
-				socketList.add(soc);
-				System.out.println("Sever get connection from client:" + num);
+				sock = serverSocket.accept();		//---Start
+				socketList.add(sock);
 				new SocketThread().start();			//---"run()"
 				num++;
 			}
 		}catch(Exception e){
 			System.err.print("ErrorNumber 1:" + e);
-			tryClose(soc);
+			tryClose(sock);
 		}
 	}
 	
 	//---This is run when the thread was created.
 	//===Do Override!
-	public void outerRun(SocketThread t){
+	abstract public void outerRun(SocketThread t);
 	/*---For exsample
+	{
 		try{
 			//===Your Code
 		}catch(Exception e){
 			System.err.println("ErrorNumber 2:" + e);
 			tryClose(t.socket);
 		}
-	*/
-	}
+	}*/
 	
 	//---Try to close
 	public void tryClose(Socket socket)
 	{
 		try{
-			socket.close();
+			if(socket != null)socket.close();
 		}catch(Exception e){
 			System.err.println("ErrorNumber 3" + e);
 		}
@@ -85,7 +85,7 @@ public abstract class AbsServer{
 	
 	
 	
-	//---It's inner class "multi Thread"
+	//---This is inner class "multi Thread"
 	class SocketThread extends Thread{
 		int number;
 		String name;
@@ -95,7 +95,7 @@ public abstract class AbsServer{
 		{
 			this.number = num;
 			this.name = "" + num;
-			this.socket = soc;
+			this.socket = sock;
 		}
 		
 		//---Make thread by calling "start()"
@@ -104,4 +104,7 @@ public abstract class AbsServer{
 			outerRun(this);
 		}
 	}
+}
+interface FixedMethod{
+	
 }
