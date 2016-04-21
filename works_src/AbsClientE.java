@@ -1,3 +1,4 @@
+//AbsClient add input thread
 public abstract class AbsClientE extends AbsClient
 {
 	//Start client
@@ -38,7 +39,7 @@ public abstract class AbsClientE extends AbsClient
 			socket = sock;
 		}
 		
-		//
+		//call
 		public void run()
 		{
 			outerRun(this);

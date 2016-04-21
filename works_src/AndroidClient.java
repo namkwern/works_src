@@ -3,15 +3,16 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-class AndroidClient
+class AndroidClient extends AbsClient
 {
 	public static void main(String[] args)throws IOException
 	{
-		MakeSocket ms = new MakeSocket();
-		ms.execAll(InetAddress.getLocalHost(), 4302);
+		AndroidClient client = new AndroidClient();
+		client.execAll(InetAddress.getLocalHost(), 4302);
 	}
-}
-class MakeSocket extends AbsClient{
+	
+	
+	@Override
 	public void process()
 	{
 		try{

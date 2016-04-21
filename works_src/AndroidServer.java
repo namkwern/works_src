@@ -2,15 +2,12 @@ package networkPrivate.android;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-class AndroidServer{
+class AndroidServer extends AbsServer{
 	public static void main(String[] args)throws IOException
 	{
-		ServerMake server = new ServerMake();
+		AndroidServer server = new AndroidServer();
 		server.execAll(4302, 2, InetAddress.getLocalHost());
 	}
-	
-}
-class ServerMake extends AbsServer{
 	
 	//This is run when the thread was created.
 	@Override
