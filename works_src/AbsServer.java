@@ -53,10 +53,25 @@ public abstract class AbsServer{
 				num++;
 			}
 		}catch(Exception e){
-			System.err.print("ErrorNumber 1:" + e);
+			System.err.print(this.getClass() + "ErrorNumber 1:" + e);
 			tryClose(sock);
 		}
 	}
+	
+	
+	//---This is run when the Socket was connected.
+	//===Do Override!
+	abstract public void afterConnect();
+	/*---For exsample
+	{
+		try{
+			//===Your Code
+		}catch(Exception e){
+			System.err.println(this.getClass() + "ErrorNumber 1:" + e);
+			tryClose(t.socket);
+		}
+	}*/
+	
 	
 	//---This is run when the thread was created.
 	//===Do Override!
@@ -66,7 +81,7 @@ public abstract class AbsServer{
 		try{
 			//===Your Code
 		}catch(Exception e){
-			System.err.println("ErrorNumber 2:" + e);
+			System.err.println(this.getClass() + "ErrorNumber 2:" + e);
 			tryClose(t.socket);
 		}
 	}*/
@@ -77,10 +92,18 @@ public abstract class AbsServer{
 		try{
 			if(socket != null)socket.close();
 		}catch(Exception e){
-			System.err.println("ErrorNumber 3" + e);
+			System.err.println(this.getClass() + "ErrorNumber 3" + e);
 		}
 	}
 	
+	public void clear(){
+		for(Socket s: socketList){
+			try{
+				s.close();
+			}catch(Exception e){}
+		}
+		socketList.clear();
+	}
 	
 	
 	
@@ -104,7 +127,4 @@ public abstract class AbsServer{
 			outerRun(this);
 		}
 	}
-}
-interface FixedMethod{
-	
 }
