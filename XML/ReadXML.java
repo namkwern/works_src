@@ -1,3 +1,4 @@
+//commentCode is "SJIS"
 import java.util.*;
 //XMLテキストのコントロール(要素の分解と読み取り)
 public class ReadXML
@@ -8,7 +9,6 @@ public class ReadXML
 	public ReadXML(String message, String main){
 		message = ext(message, "<" + main + ">", "</" + main + ">");
 		data.add(new Data(main, new ArrayList<Zokusei>(),message));
-		data.addAll(getData(message));
 		int count = 0;
 		//条件全ての要素を分解できたら
 		while(true){
