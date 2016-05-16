@@ -1,4 +1,4 @@
-//commentCode is "SJIS"
+//comment is "SJIS"
 import java.util.*;
 //XMLテキストのコントロール(要素の分解と読み取り)
 public class ReadXML
@@ -13,8 +13,11 @@ public class ReadXML
 		//条件全ての要素を分解できたら
 		while(true){
 			String inner = data.get(count).inner;
-			if(inner != null && !inner.equals(""))
-				data.addAll(getData(inner));
+			if(inner != null && !inner.equals("")){
+				ArrayList<Data> d = getData(inner);
+				data.get(count).child = d;
+				data.addAll(d);
+			}
 			if(count == data.size() - 1)break;
 			count++;
 		}
@@ -46,7 +49,7 @@ public class ReadXML
 	
 	
 	//最初にはさまれた対象を取得
-	public static String ext(String str, String strb, String strt){
+	private static String ext(String str, String strb, String strt){
 		int indexb = str.indexOf(strb);
 		int indext = str.indexOf(strt, indexb + strb.length());
 		if(indexb == -1 || indext == -1)throw new IndexOutOfBoundsException("見つかりませんでした");
@@ -54,7 +57,7 @@ public class ReadXML
 		
 	}
 	//最初にはさまれた対象を取得(index以降のみ)
-	public static String ext(String str, String strb, String strt, int index){
+	private static String ext(String str, String strb, String strt, int index){
 		int indexb = str.indexOf(strb, index);
 		int indext = str.indexOf(strt, indexb + strb.length());
 		if(indexb == -1 || indext == -1)throw new IndexOutOfBoundsException("見つかりませんでした");
@@ -62,14 +65,14 @@ public class ReadXML
 	}
 	
 	//要素名とname属性値を指定
-	public String getData(String youso, String name){
+	public String getData(String youso, String zokusei, String zokuseiti){
 		for(int n = 0; n < data.size(); n++){
 			Data d = data.get(n);
 			if(d.youso.equals(youso)){
 				for(int m = 0; m < d.zokusei.size(); m++){
 					Zokusei z = d.zokusei.get(m);
-					if(z.name.equals("name")){
-						if(z.value.equals(name)){
+					if(z.name.equals(zokusei)){
+						if(z.value.equals(zokuseiti)){
 							return data.get(n).inner;
 						}
 					}
@@ -86,10 +89,12 @@ public class ReadXML
 		for(int n = 0; n < data.size(); n++){
 			Data d = data.get(n);
 			System.out.println(d.youso + "\n" + d.inner);
-			for(int m = 0; m < data.get(n).zokusei.size(); m++){
+			for(int m = 0; m < d.zokusei.size(); m++){
 				Zokusei z = d.zokusei.get(m);
 				System.out.println(z.name + ":" + z.value);
 			}
+			for(int m = 0; m < d.child.size(); m++)
+				System.out.println("child:" + d.child.get(m).youso);
 			System.out.println();
 		}
 		System.out.println("---disp end---");
@@ -100,6 +105,7 @@ public class ReadXML
 		public String youso;
 		public ArrayList<Zokusei> zokusei;
 		public String inner;//タグに挟まれたの値
+		public ArrayList<Data> child;
 		
 		//con(要素名、属性リスト、タグ内)
 		Data(String youso, ArrayList<Zokusei> zokusei, String inner){
