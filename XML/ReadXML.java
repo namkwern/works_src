@@ -1,4 +1,5 @@
 //comment is "SJIS"
+package module;
 import java.util.*;
 //XMLテキストのコントロール(要素の分解と読み取り)
 public class ReadXML
@@ -7,123 +8,161 @@ public class ReadXML
 	
 	//con(ファイル全体メッセージ、メインタグ)
 	public ReadXML(String message, String main){
-		message = ext(message, "<" + main + ">", "</" + main + ">");
-		data.add(new Data(main, new ArrayList<Zokusei>(),message));
+		message = extB(message, "<" + main + ">", "</" + main + ">");
+		data.add(new Data(message));
 		int count = 0;
-		//条件全ての要素を分解できたら
-		while(true){
-			String inner = data.get(count).inner;
-			if(inner != null && !inner.equals("")){
-				ArrayList<Data> d = getData(inner);
-				data.get(count).child = d;
-				data.addAll(d);
+		int index = 0;
+		Data d = data.get(count);
+		String inner = d.inner;
+		while(count < data.size()){
+			if(d.inner.indexOf("<", index) == -1){
+				d = data.get(count);
+				inner = d.inner;
+				count++;
 			}
-			if(count == data.size() - 1)break;
-			count++;
+			if(inner.indexOf("<", index) == -1)break;
+			String tag = extB(inner, "<", ">", index);
+			String element = getElement(tag);
+			//子要素の生成
+			Data child = new Data(extB(inner, tag , "</" + element + ">", index));
+			data.add(child);
+			d.child.add(child);
+			index = inner.indexOf("</" + element + ">", index) + element.length() + 3;
 		}
-	}
-	
-	//要素を分解してdataに格納して返す
-	public ArrayList<Data> getData(String message){
-		ArrayList<Data> dList = new ArrayList<Data>();
-		try{
-			int index = 0;
-			while(message.indexOf("<",index) != -1){
-				String tag = ext(message, "<", ">", index);
-				String[] str = tag.split(" ");
-				ArrayList<Zokusei> zokusei = new ArrayList<Zokusei>();
-				for(int n = 1; n < str.length; n++){
-					String zoku = ext(str[n], "", "=");
-					String zokuTi = ext(str[n], "\"", "\"");
-					zokusei.add(new Zokusei(zoku,zokuTi));
-				}
-				String youso = str[0];
-				String inner = ext(message, "<" + tag + ">", "</" + youso + ">");
-				dList.add(new Data(youso, zokusei, inner));
-				index = message.indexOf("</" + youso + ">", index) + youso.length() + 3;
-			}
-		}catch(IndexOutOfBoundsException e){
-		}
-		return dList;
-	}
-	
+	}	
 	
 	//最初にはさまれた対象を取得
 	private static String ext(String str, String strb, String strt){
-		int indexb = str.indexOf(strb);
-		int indext = str.indexOf(strt, indexb + strb.length());
-		if(indexb == -1 || indext == -1)throw new IndexOutOfBoundsException("見つかりませんでした");
-		return str.substring(indexb + strb.length(), indext);
-		
+		return ext(str, strb, strt, 0);
 	}
-	//最初にはさまれた対象を取得(index以降のみ)
+	//↑(index以降のみ)
 	private static String ext(String str, String strb, String strt, int index){
 		int indexb = str.indexOf(strb, index);
 		int indext = str.indexOf(strt, indexb + strb.length());
-		if(indexb == -1 || indext == -1)throw new IndexOutOfBoundsException("見つかりませんでした");
+		if(indexb == -1)throw new IndexOutOfBoundsException("見つかりませんでした:" + strb);
+		if(indext == -1)throw new IndexOutOfBoundsException("見つかりませんでした:" + strt);
 		return str.substring(indexb + strb.length(), indext);
 	}
 	
-	//要素名とname属性値を指定
-	public String getData(String youso, String zokusei, String zokuseiti){
-		for(int n = 0; n < data.size(); n++){
-			Data d = data.get(n);
-			if(d.youso.equals(youso)){
-				for(int m = 0; m < d.zokusei.size(); m++){
-					Zokusei z = d.zokusei.get(m);
-					if(z.name.equals(zokusei)){
-						if(z.value.equals(zokuseiti)){
-							return data.get(n).inner;
-						}
-					}
-				}
-			}
+	//最初にはさまれた対象を取得、挟んだものを残す
+	private static String extB(String str, String strb, String strt){
+		return extB(str, strb, strt, 0);
+	}
+	//↑(index以降のみ)
+	private static String extB(String str, String strb, String strt, int index){
+		return strb + ext(str, strb, strt, index) + strt;
+	}
+	
+	//タグから要素を取得
+	private static String getElement(String tag){
+		if(tag.indexOf("<") != -1){
+			if(tag.indexOf(" ") != -1)
+				return ext(tag, "<", " ");
+			else
+				return ext(tag, "<", ">");
+		}else{
+			if(tag.indexOf(" ") != -1)
+				return ext(tag, "", " ");
+			else
+				return tag;
 		}
-		return null;
 	}
 	
 	
 	//タグ要素を全部表示
 	public void dispAll(){
 		System.out.println("---disp start---");
-		for(int n = 0; n < data.size(); n++){
-			Data d = data.get(n);
-			System.out.println(d.youso + "\n" + d.inner);
-			for(int m = 0; m < d.zokusei.size(); m++){
-				Zokusei z = d.zokusei.get(m);
-				System.out.println(z.name + ":" + z.value);
-			}
-			for(int m = 0; m < d.child.size(); m++)
-				System.out.println("child:" + d.child.get(m).youso);
-			System.out.println();
-		}
-		System.out.println("---disp end---");
+		for(Data d: data)
+			System.out.println(d.toString() + "\n");
+		System.out.println("\n---disp end---");
 	}
 	
+	//データクラス
 	static class Data
 	{
-		public String youso;
-		public ArrayList<Zokusei> zokusei;
+		public String element;//要素
+		public ArrayList<Attribute> attribute = new ArrayList<Attribute>();//属性
 		public String inner;//タグに挟まれたの値
-		public ArrayList<Data> child;
+		public ArrayList<Data> child = new ArrayList<Data>();
 		
-		//con(要素名、属性リスト、タグ内)
-		Data(String youso, ArrayList<Zokusei> zokusei, String inner){
-			this.youso = youso;
-			this.zokusei = zokusei;
+		private String tag;
+		//con(要素名、属性リスト、タグ間)
+		Data(String element, ArrayList<Attribute> attribute, String inner){
+			setData(element, attribute, inner);
+		}
+		//con(タグ、タグ間)
+		Data(String tag, String inner){
+			setData(tag, inner);
+		}
+		//con(タグから終端タグ)
+		Data(String all){
+			setData(all);
+		}
+		
+		//コンストラクタの受け流し
+		//必ず実行される
+		private void setData(String element, ArrayList<Attribute> attribute, String inner){
+			this.element = element;
+			this.attribute = attribute;
 			this.inner = inner;
 		}
-		
-	}
-	static class Zokusei
-		{
-			String name;
-			String value;
-			
-			//con(属性名、属性値)
-			Zokusei(String name, String value){
-				this.name = name;
-				this.value = value;
-			}
+		private void setData(String tag, String inner){
+			ArrayList<Attribute> attribute = new ArrayList<Attribute>();
+			String[] str = tag.split("[ ><]");
+			for(int n = 1; n < str.length; n++)
+				attribute.add(new Attribute(str[n]));
+			String element = getElement(tag);
+			setData(element, attribute, inner);
 		}
+		private void setData(String all){
+			String tag = ext(all, "<", ">");
+			String inner = ext(all, "<" + tag + ">", "</" + getElement(tag) + ">");
+			setData(tag, inner);
+		}
+		
+		public String toString(){
+			String str = "";
+			str += "[" + element + "]\n";
+			for(Attribute att: attribute)
+				str += att.toString() + "\n";
+			if(child.size() != 0){
+				for(Data chi: child)
+					str += "child:<" + chi.element + ">\n";
+				str += "\n";
+			}
+			str += inner;
+			return str;
+		}
+	}
+	
+	//属性クラス
+	static class Attribute
+	{
+		String name;
+		String value;
+		
+		//con(属性名、属性値)
+		Attribute(String name, String value){
+			setAttribute(name, value);
+		}
+		//con(属性と属性値の塊)
+		Attribute(String attribute){
+			setAttribute(attribute);
+		}
+		
+		//コンストラクタの受け流し
+		private void setAttribute(String name, String value){
+			this.name = name;
+			this.value = value;
+		}
+		private void setAttribute(String attribute){
+			String name = ext(attribute, "", "=");
+			String value = ext(attribute, "\"", "\"");
+			setAttribute(name, value);
+		}
+		
+		public String toString(){
+			return name + "=\"" + value + "\"";
+		}
+	}
 }
