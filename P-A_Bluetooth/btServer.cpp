@@ -1,25 +1,25 @@
 #include <iostream>
+#include <iomanip>
 #include <stdio.h>
 #include <WinSock2.h>
 #include <ws2bth.h>
-
 
 #pragma comment(lib, "Ws2_32.lib")
 
 const int PASS = 25358;
 int main()
 {
+	std::cout << std::hex;
 	
 	int pass;
 	scanf("%d", &pass);
 	if(pass != PASS){
-		printf("---pass Error---\n");
+		std::cout << "---pass Error---\r\n";
 		return 1;
 	}
 	
-	char id;
+	int id;
 	scanf("%x", &id);
-	
 	
     WSAData wsaData = { 0 };
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -51,7 +51,7 @@ int main()
     set.dwOutputFlags = 0;                                         // Not used
     set.lpszServiceInstanceName = "Server";                        // Recommended.
     
-    GUID guid;//cc896eaa-d8f0-d97a-c432-0301d6921a?? --> 54,55
+    GUID guid;//cc896eaa-d8f0-d97a-c432-0301d6921a(54|55)
 	guid.Data1 = 0xcc896eaa;
 	guid.Data2 = 0xd8f0;
 	guid.Data3 = 0xd97a;
@@ -73,7 +73,7 @@ int main()
 		if(i == 1)
 			printf("-");
 	}
-	printf("\n");
+	printf("\r\n");
 	
 	set.lpServiceClassId = &guid;   // Requred.
 	set.lpVersion = NULL;                                          // Not used.
@@ -91,24 +91,29 @@ int main()
     if (WSASetService(&set, RNRSERVICE_REGISTER, 0) != 0) {
         return -1;
     }
-	    listen(listen_sock, 0);
-	std::cout << "---waiting connect---\n";
-	    SOCKADDR_BTH sab2;
-	    int ilen = sizeof(sab2);
-	    SOCKET socket = accept(listen_sock, (SOCKADDR *)&sab2, &ilen);
-	std::cout << "---waiting message---\n";
+    listen(listen_sock, 0);
+std::cout << id << ":---waiting connect---\r\n";
+    SOCKADDR_BTH sab2;
+    int ilen = sizeof(sab2);
+    SOCKET socket = accept(listen_sock, (SOCKADDR *)&sab2, &ilen);
+;
+std::cout << id << ":accept-->waiting message\r\n";
+	
+    char buf[1024] = { 0 };
+	while(true){
+	    int res = recv(socket, buf, sizeof(buf), 0);
+	    
+	    if (res > 0){
+	        for(int n = 0; n < res; n++)
+	        	std::cout << buf[n];
+	    }else{
+	    	break;
+	    }
+		//if(res == 0)break;
+	}
+std::cout << id << "%02x:recv-->close\r\n";
+    closesocket(listen_sock);
+    closesocket(socket);
 
-	    char buf[128] = { 0 };
-		while(true){
-		    int res = recv(socket, buf, sizeof(buf), 0);
-		    
-		    if (res > 0)
-		        std::cout << buf;
-			if(res == 0)break;
-		}
-	std::cout << "recv-->close\n";
-	    closesocket(listen_sock);
-	    closesocket(socket);
-
-	    WSACleanup();
+    WSACleanup();
 }
