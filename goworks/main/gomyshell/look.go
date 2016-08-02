@@ -18,7 +18,9 @@ var(
 	linesubnot []string
 	diresub []string
 	diresubnot []string
+	nameF bool
 	lineF bool
+	direF bool
 	nFlag bool
 	rFlag bool
 	count int
@@ -28,7 +30,7 @@ func main(){
 	rF := flag.Bool("r", false, "!!!表示・処理過多注意!!!\n\tRecursive 下層のファイル/ディレクトリをすべて検索")
 	dF := flag.Bool("d", false, "Directory ディレクトリ検索に切り替え")
 	nF := flag.Bool("n", false, "!!!表示過多注意!!!\n\tnon-stop ファイル内検索時にまとめて表示")
-	direS := flag.String("dire", "", "ディレクトリ名検索。パスに対して正規表現で検索をかけます。\n\t-dか-rで検索する必要があります。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
+	direS := flag.String("dire", "", "ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n\tディレクトリ名に対して正規表現で検索をかけます。\n\tカレントディレクトリは検索、表示対象から外されます。\n\t-dか-rで検索する必要があります。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
 	direnS := flag.String("diren", "", "-direの否定検索版")
 	nameS := flag.String("name", "", "ファイル名検索。正規表現で検索します。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
 	namenS := flag.String("namen", "", "-nameの否定検索版")
@@ -48,9 +50,10 @@ func main(){
 	namesubnot = strings.Split(*namenS, " ")
 	linesub = strings.Split(*lineS, " ")
 	linesubnot = strings.Split(*linenS, " ")
-	
+	//フラグの有無判定
+	nameF = (*nameS != "") || (*namenS != "")
 	lineF = (*lineS != "") || (*linenS != "")
-	
+	direF = (*direS != "") || (*direnS != "")
 	
 	//フラグエラー
 	if dFlag && (lineF || nFlag){
@@ -74,7 +77,8 @@ func main(){
 	if cur[len(cur) - 1:] != "/"{
 		cur = cur + "/"
 	}
-	recu(cur, "")
+	
+	recu(cur, "", !direF)
 	
 	//個数表示
 	var fileType string
@@ -88,28 +92,30 @@ func main(){
 }
 
 //カレントディレクトリ、ファイルパス
-func recu(cur string, path string){
+func recu(cur string, path string, dispflag bool){
 	fds, _ := ioutil.ReadDir(cur + path)
 	for _, v := range fds{
 		if v.IsDir(){
-			if dFlag{
-				if my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+			if dFlag && dispflag{//ディレクトリ検索
+				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
 					fmt.Println(cur + path + v.Name())
 					count++
 				}
 			}
-			if rFlag{
+			if rFlag{//-rで再帰
 				p := path + v.Name()
-				if my.MatchAll(p, diresub) && my.NotMatchAll(p, diresubnot){
-					if p != ""{
-						p = p + "/"
-					}
-					recu(cur, p)
+				if p != ""{
+					p = p + "/"
+				}
+				if !direF || my.MatchAll(v.Name(), diresub) && my.NotMatchAll(v.Name(), diresubnot){
+					recu(cur, p, true)
+				}else{
+					recu(cur, p, false)
 				}
 			}
 		}else{
-			if !dFlag{
-				if my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+			if !dFlag && dispflag{//ファイル検索
+				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
 					if lineF{
 						fileCheck(cur + path + v.Name())
 					}else{
@@ -122,13 +128,14 @@ func recu(cur string, path string){
 	}
 }
 
+//ファイル内文字列を探索して、発見したらfiledispを呼び出す
 func fileCheck(name string){
 	filestr, _ := ioutil.ReadFile(name)
 	str, _ := my.AutoEnc(string(filestr))
 	arr := strings.Split(str, "\n")
 	str = ""
 	for n, v := range arr{
-		if my.MatchAll(v, linesub) && my.NotMatchAll(v, linesubnot){
+		if !lineF || my.MatchAll(v, linesub) && my.NotMatchAll(v, linesubnot){
 			line := strings.Replace(v, "\t", " ", -1)
 			num := strconv.Itoa(n + 1)
 			str =  str + num + "\t" + line + "\n"
