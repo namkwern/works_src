@@ -70,9 +70,9 @@ func main(){
 	}
 	
 	//ファイル探索開始(最後に\がなかったら付ける)
-	cur := *fromS
-	if cur[len(cur) - 1:] != "\\"{
-		cur = cur + "\\"
+	cur := strings.Replace(*fromS, "\\", "/", 0)
+	if cur[len(cur) - 1:] != "/"{
+		cur = cur + "/"
 	}
 	recu(cur, "")
 	
@@ -102,7 +102,7 @@ func recu(cur string, path string){
 				p := path + v.Name()
 				if my.MatchAll(p, diresub) && my.NotMatchAll(p, diresubnot){
 					if p != ""{
-						p = p + "\\"
+						p = p + "/"
 					}
 					recu(cur, p)
 				}
@@ -123,7 +123,8 @@ func recu(cur string, path string){
 }
 
 func fileCheck(name string){
-	str, _ := my.ReadAssets(name)
+	filestr, _ := ioutil.ReadFile(name)
+	str, _ := my.AutoEnc(string(filestr))
 	arr := strings.Split(str, "\n")
 	str = ""
 	for n, v := range arr{
