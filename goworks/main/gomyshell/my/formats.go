@@ -26,12 +26,7 @@ func FromSjis(str string) (string, error) {
 }
 
 //
-func ReadAssets(str string) (string, error) {
-	body, err := ioutil.ReadFile(str)
-	if err != nil {
-		return "", err
-	}
-
+func AutoEnc(body string) (string, error) {
 	var f []byte
 	encodings := []string{"sjis", "utf-8"}
 	for _, enc := range encodings {
@@ -42,7 +37,7 @@ func ReadAssets(str string) (string, error) {
 			}
 			var buf bytes.Buffer
 			ic := transform.NewWriter(&buf, ee.NewDecoder())
-			_, err := ic.Write(body)
+			_, err := ic.Write([]byte(body))
 			if err != nil {
 				continue
 			}
