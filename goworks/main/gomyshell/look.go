@@ -28,12 +28,12 @@ func main(){
 	rF := flag.Bool("r", false, "!!!表示・処理過多注意!!!\n\tRecursive 下層のファイル/ディレクトリをすべて検索")
 	dF := flag.Bool("d", false, "Directory ディレクトリ検索に切り替え")
 	nF := flag.Bool("n", false, "!!!表示過多注意!!!\n\tnon-stop ファイル内検索時にまとめて表示")
-	direS := flag.String("dire", "", "ディレクトリ名検索。パスに対して検索をかけます。-dか-rで検索する必要があります。")
+	direS := flag.String("dire", "", "ディレクトリ名検索。パスに対して正規表現で検索をかけます。\n\t-dか-rで検索する必要があります。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
 	direnS := flag.String("diren", "", "-direの否定検索版")
-	fileS := flag.String("file", "", "ファイル名検索。正規表現で検索します。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
-	filenS := flag.String("filen", "", "fileの否定検索版")
+	nameS := flag.String("name", "", "ファイル名検索。正規表現で検索します。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
+	namenS := flag.String("namen", "", "-nameの否定検索版")
 	lineS := flag.String("line", "", "!!!表示・処理過多注意!!!\n\tファイル内検索。正規表現で検索します。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND\n\t-fileを指定することで読み込むファイルを減らそう！")
-	linenS := flag.String("linen", "", "-inの否定検索版")
+	linenS := flag.String("linen", "", "-lineの否定検索版")
 	fromS := flag.String("from", ".", "検索を開始するディレクトリ")
 	
 	flag.Parse()
@@ -44,8 +44,8 @@ func main(){
 	nFlag = *nF
 	diresub = strings.Split(*direS, " ")
 	diresubnot = strings.Split(*direnS, " ")
-	namesub = strings.Split(*fileS, " ")
-	namesubnot = strings.Split(*filenS, " ")
+	namesub = strings.Split(*nameS, " ")
+	namesubnot = strings.Split(*namenS, " ")
 	linesub = strings.Split(*lineS, " ")
 	linesubnot = strings.Split(*linenS, " ")
 	
@@ -54,7 +54,7 @@ func main(){
 	
 	//フラグエラー
 	if dFlag && (lineF || nFlag){
-		fmt.Println("<-d(ディレクトリモード)を使用した場合は、-file/-filen(ファイル名検索)-line/-linen(ファイル内検索)及び-n(ファイル内容連続表示)はすべて無効です>")
+		fmt.Println("<-d(ディレクトリモード)を使用した場合は、-line/-linen(ファイル内検索)及び-n(ファイル内容連続表示)はすべて無効です>")
 		lineF = false
 		nFlag = false
 	}
@@ -93,7 +93,7 @@ func recu(cur string, path string){
 	for _, v := range fds{
 		if v.IsDir(){
 			if dFlag{
-				if my.MatchAll(v.Name(), diresub) && my.NotMatchAll(v.Name(), diresubnot){
+				if my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
 					fmt.Println(cur + path + v.Name())
 					count++
 				}
@@ -142,7 +142,10 @@ func filedisp(name string, str string){
 	if str != ""{
 		if !nFlag{
 			if first{
-				fmt.Println("中断>exit\nまとめて表示>all\n次の内容を表示>Enter")
+				fmt.Println("次を表示しない>skip(s)")
+				fmt.Println("中断>exit(e)")
+				fmt.Println("まとめて表示>all(a)")
+				fmt.Println("次の内容を表示>Enter")
 				first = false
 			}
 		}
@@ -151,11 +154,14 @@ func filedisp(name string, str string){
 		if !nFlag{
 			var s string
 			fmt.Scanln(&s)
-			if s == "exit"{
+			if s == "exit" || s == "e"{
 				os.Exit(1)
 			}
-			if s == "all"{
+			if s == "all" || s == "a"{
 				nFlag = true
+			}
+			if s == "skip" || s == "s"{
+				return
 			}
 		}else{
 			fmt.Println()
