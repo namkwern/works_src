@@ -8,10 +8,14 @@ import(
 	"strings"
 	"strconv"
 	"os"
+	"path/filepath"
 )
 
 var(
+	nFlag bool
+	rFlag bool
 	dFlag bool
+	fFlag bool
 	namesub []string
 	namesubnot []string
 	linesub []string
@@ -21,20 +25,28 @@ var(
 	nameF bool
 	lineF bool
 	direF bool
-	nFlag bool
-	rFlag bool
 	count int
 )
 func main(){
-	
-	rF := flag.Bool("r", false, "!!!表示・処理過多注意!!!\n\tRecursive 下層のファイル/ディレクトリをすべて検索")
-	dF := flag.Bool("d", false, "Directory ディレクトリ検索に切り替え")
-	nF := flag.Bool("n", false, "!!!表示過多注意!!!\n\tnon-stop ファイル内検索時にまとめて表示")
-	direS := flag.String("dire", "", "ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n\tディレクトリ名に対して正規表現で検索をかけます。\n\tカレントディレクトリは検索、表示対象から外されます。\n\t-dか-rで検索する必要があります。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
+	rF := flag.Bool("r", false, "!!!表示・処理過多注意!!!\n" +
+		"\tRecursive 下層のファイル/ディレクトリをすべて検索")
+	dF := flag.Bool("d", false, "Directory ディレクトリ検索モード")
+	fF := flag.Bool("f", false, "FullPath 絶対パス表示モード")
+	nF := flag.Bool("n", false, "!!!表示過多注意!!!\n" +
+		"\tnon-stop ファイル内検索時にまとめて表示")
+	direS := flag.String("dire", "", "ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n" +
+		"\tディレクトリ名に対して正規表現で検索をかけます。\n" +
+		"\tカレントディレクトリは検索、表示対象から外されます。\n" +
+		"\t自動的に-rが有効になります。\n" +
+		"\tスペースは必ず\\sを指定してください。スペース区切りはAND")
 	direnS := flag.String("diren", "", "-direの否定検索版")
-	nameS := flag.String("name", "", "ファイル名検索。正規表現で検索します。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND")
+	nameS := flag.String("name", "", "ファイル名検索。正規表現で検索します。\n" +
+		"\tスペースは必ず\\sを指定してください。スペース区切りはAND")
 	namenS := flag.String("namen", "", "-nameの否定検索版")
-	lineS := flag.String("line", "", "!!!表示・処理過多注意!!!\n\tファイル内検索。正規表現で検索します。\n\tスペースは必ず\\sを指定してください。スペース区切りはAND\n\t-fileを指定することで読み込むファイルを減らそう！")
+	lineS := flag.String("line", "", "!!!表示・処理過多注意!!!\n" +
+		"\tファイル内検索。正規表現で検索します。\n" +
+		"\tスペースは必ず\\sを指定してください。スペース区切りはAND\n" +
+		"\t-fileを指定することで読み込むファイルを減らそう！")
 	linenS := flag.String("linen", "", "-lineの否定検索版")
 	fromS := flag.String("from", ".", "検索を開始するディレクトリ")
 	
@@ -43,6 +55,7 @@ func main(){
 	//フラグの受け取り
 	rFlag = *rF
 	dFlag = *dF
+	fFlag = *fF
 	nFlag = *nF
 	diresub = strings.Split(*direS, " ")
 	diresubnot = strings.Split(*direnS, " ")
@@ -64,8 +77,9 @@ func main(){
 	if !lineF && nFlag{
 		fmt.Println("<-line/-linenを指定していないので-nは無効です>\n")
 	}
-	if (!rFlag && !dFlag) && *direS != ""{
-		fmt.Println("<-r(再起モード)もしくは-d(ディレクトリモード)を指定していないので-direは無効です。>\n")
+	if !rFlag && direF{
+		rFlag = true
+		fmt.Println("<-direによって-r(再起モード)が自動的に有効になります。>\n")
 	}
 	//ファイル内検索指定ありで拡張子許可
 	if lineF{
@@ -98,7 +112,11 @@ func recu(cur string, path string, dispflag bool){
 		if v.IsDir(){
 			if dFlag && dispflag{//ディレクトリ検索
 				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
-					fmt.Println(cur + path + v.Name())
+					disp := cur + path + v.Name()
+					if fFlag{//絶対パス化
+						disp, _ = filepath.Abs(disp)
+					}
+					fmt.Println(disp)
 					count++
 				}
 			}
@@ -116,10 +134,14 @@ func recu(cur string, path string, dispflag bool){
 		}else{
 			if !dFlag && dispflag{//ファイル検索
 				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+					disp := cur + path + v.Name()
+					if fFlag{//絶対パス化
+						disp, _ = filepath.Abs(disp)
+					}
 					if lineF{
-						fileCheck(cur + path + v.Name())
+						fileCheck(disp)
 					}else{
-						fmt.Println(cur + path + v.Name())
+						fmt.Println(disp)
 						count++
 					}
 				}
