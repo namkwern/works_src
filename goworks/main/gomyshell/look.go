@@ -26,6 +26,7 @@ var(
 	lineF bool
 	direF bool
 	count int
+	bottomCount int
 )
 func main(){
 	hF := flag.Bool("h", false, "ヘルプを表示する")
@@ -34,8 +35,8 @@ func main(){
 	dF := flag.Bool("d", false, "Directory ディレクトリ検索モード")
 	fF := flag.Bool("f", false, "FullPath 絶対パス表示モード")
 	nF := flag.Bool("n", false, "!!!表示過多注意!!!\n" +
-		"\tnon-stop ファイル内検索時にまとめて表示")
-	direS := flag.String("dire", "", "ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n" +
+		"\tnon-stop 行検索時にまとめて表示")
+	direS := flag.String("dire", "", "末端ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n" +
 		"\tディレクトリ名に対して正規表現で検索をかけます。\n" +
 		"\tカレントディレクトリは検索、表示対象から外されます。\n" +
 		"\t自動的に-rが有効になります。\n" +
@@ -45,15 +46,15 @@ func main(){
 		"\tスペースは必ず\\sを指定してください。スペース区切りはAND")
 	namenS := flag.String("namen", "", "-nameの否定検索版")
 	lineS := flag.String("line", "", "!!!表示・処理過多注意!!!\n" +
-		"\tファイル内検索。正規表現で検索します。\n" +
+		"\t行検索。正規表現で検索します。\n" +
 		"\tスペースは必ず\\sを指定してください。スペース区切りはAND\n" +
-		"\t-fileを指定することで読み込むファイルを減らそう！")
+		"\t-nameを指定することで読み込むファイルを減らそう！")
 	linenS := flag.String("linen", "", "-lineの否定検索版")
 	fromS := flag.String("from", ".", "検索を開始するディレクトリ")
 	
 	//-hでフラグ詳細表示
 	flag.Parse()
-	if *hF{
+	if *hF || len(flag.Args()) != 0{
 		fmt.Println("<ファイル検索ツール>")
 		fmt.Println("例:下層のjavaファイルからpublic要素を検索する")
 		fmt.Println("\tlook -r -name=\"java$\" -line=\"public\"")
@@ -80,16 +81,16 @@ func main(){
 	
 	//フラグエラー
 	if dFlag && (lineF || nFlag){
-		fmt.Println("<-d(ディレクトリモード)を使用した場合は、-line/-linen(ファイル内検索)及び-n(ファイル内容連続表示)はすべて無効です>")
+		fmt.Println("<-d(ディレクトリモード)を使用した場合は、-line/-linen(行検索)及び-n(連続表示)はすべて無効です>")
 		lineF = false
 		nFlag = false
 	}
 	if !lineF && nFlag{
-		fmt.Println("<-line/-linenを指定していないので-nは無効です>\n")
+		fmt.Println("<-line/-linen(行検索)を指定していないので-n(連続表示)は無効です>\n")
 	}
 	if !rFlag && direF{
-		rFlag = true
-		fmt.Println("<-direによって-r(再起モード)が自動的に有効になります。>\n")
+		fmt.Println("<-r(再起モード)を指定していないので-dire(末端ディレクトリ名検索)は使用できません。>\n")
+		return
 	}
 	//ファイル内検索指定ありで拡張子許可
 	if lineF{
@@ -98,11 +99,21 @@ func main(){
 	
 	//ファイル探索開始(最後に\がなかったら付ける)
 	cur := strings.Replace(*fromS, "\\", "/", -1)
-	if cur[len(cur) - 1:] != "/"{
+	if cur[len(cur) - 1] != '/'{
 		cur = cur + "/"
 	}
+	err := os.Chdir(cur)
+	if err != nil{
+		fmt.Println("-from指定エラー")
+		return
+	}
+	disp, _ := filepath.Abs(cur)
 	
-	recu(cur, "", !direF)
+	if *fromS != "."{
+		fmt.Println("< from = " + disp + " >\n")
+	}
+	
+	recu("./", !direF)
 	
 	//個数表示
 	var fileType string
@@ -113,37 +124,43 @@ func main(){
 	}
 	fmt.Print("\ndone.\n")
 	fmt.Println(count, fileType)
+	if dFlag && count != bottomCount{
+		fmt.Println(bottomCount, "Bottom Directorys")
+	}
 }
 
 //カレントディレクトリ、ファイルパス
-func recu(cur string, path string, dispflag bool) bool{
-	bottom := true
-	fds, _ := ioutil.ReadDir(cur + path)
+func recu(path string, dispflag bool) bool{
+	bottom := true//末端ディレクトリを判定
+	fds, err := ioutil.ReadDir(path)
+	if err != nil{
+		fmt.Println("err:notfound dir")
+	}
 	for _, v := range fds{
 		if v.IsDir(){
 			bottom = false
-			
 			bt := false
 			if rFlag{//-rで再帰
 				b := !direF || my.MatchAll(v.Name(), diresub) && my.NotMatchAll(v.Name(), diresubnot)//ヒットしたディレクトリは表示許可
-				bt = recu(cur, path + v.Name() + "/", b)
+				bt = recu(path + v.Name() + "/", b)
 			}
 			if !rFlag || bt{//末端のディレクトリか、-r未指定
 				if dFlag && dispflag{//ディレクトリ検索
 					if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
-						disp := cur + path + v.Name()
+						disp := path + v.Name()
 						if fFlag{//-fで絶対パス化
 							disp, _ = filepath.Abs(disp)
 						}
 						fmt.Println(disp)
-						count++
+						bottomCount++
 					}
 				}
 			}
+			count++
 		}else{
 			if !dFlag && dispflag{//-dなしでファイル検索
 				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
-					disp := cur + path + v.Name()
+					disp := path + v.Name()
 					if fFlag{//-fで絶対パス化
 						disp, _ = filepath.Abs(disp)
 					}
