@@ -156,7 +156,9 @@ func recu(path string, dispflag bool) bool{
 					}
 				}
 			}
-			count++
+			if dFlag{
+				count++
+			}
 		}else{
 			if !dFlag && dispflag{//-dなしでファイル検索
 				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
