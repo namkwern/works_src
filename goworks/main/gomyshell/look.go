@@ -124,7 +124,7 @@ func main(){
 	}
 	fmt.Print("\ndone.\n")
 	fmt.Println(count, fileType)
-	if dFlag && count != bottomCount{
+	if !nameF && dFlag && count != bottomCount{
 		fmt.Println(bottomCount, "Bottom Directorys")
 	}
 }
@@ -140,11 +140,7 @@ func recu(path string, dispflag bool) bool{
 		if v.IsDir(){
 			bottom = false
 			bt := false
-			if rFlag{//-rで再帰
-				b := !direF || my.MatchAll(v.Name(), diresub) && my.NotMatchAll(v.Name(), diresubnot)//ヒットしたディレクトリは表示許可
-				bt = recu(path + v.Name() + "/", b)
-			}
-			if !rFlag || bt{//末端のディレクトリか、-r未指定
+			if nameF{
 				if dFlag && dispflag{//ディレクトリ検索
 					if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
 						disp := path + v.Name()
@@ -152,11 +148,29 @@ func recu(path string, dispflag bool) bool{
 							disp, _ = filepath.Abs(disp)
 						}
 						fmt.Println(disp)
-						bottomCount++
+						count++
 					}
 				}
 			}
-			if dFlag{
+			if rFlag{//-rで再帰
+				b := !direF || my.MatchAll(v.Name(), diresub) && my.NotMatchAll(v.Name(), diresubnot)//ヒットしたディレクトリは表示許可
+				bt = recu(path + v.Name() + "/", b)
+			}
+			if !nameF{
+				if !rFlag || bt{//末端のディレクトリか、-r未指定
+					if dFlag && dispflag{//ディレクトリ検索
+						if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+							disp := path + v.Name()
+							if fFlag{//-fで絶対パス化
+								disp, _ = filepath.Abs(disp)
+							}
+							fmt.Println(disp)
+							bottomCount++
+						}
+					}
+				}
+			}
+			if dFlag && !nameF{
 				count++
 			}
 		}else{
