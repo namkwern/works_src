@@ -123,6 +123,9 @@ func main(){
 		fileType= "Files"
 	}
 	fmt.Print("\ndone.\n")
+	if bottomCount > count{
+		count = bottomCount
+	}
 	fmt.Println(count, fileType)
 	if !nameF && dFlag && count != bottomCount{
 		fmt.Println(bottomCount, "Bottom Directorys")
@@ -132,10 +135,7 @@ func main(){
 //カレントディレクトリ、ファイルパス
 func recu(path string, dispflag bool) bool{
 	bottom := true//末端ディレクトリを判定
-	fds, err := ioutil.ReadDir(path)
-	if err != nil{
-		fmt.Println("err:notfound dir")
-	}
+	fds, _ := ioutil.ReadDir(path)
 	for _, v := range fds{
 		if v.IsDir(){
 			bottom = false
@@ -170,7 +170,7 @@ func recu(path string, dispflag bool) bool{
 					}
 				}
 			}
-			if dFlag && !nameF{
+			if dFlag && !nameF && !direF{
 				count++
 			}
 		}else{
