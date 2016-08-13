@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-//表示可能なパイプを作成する ReadLine()で行を取得できる
+//win表示可能なパイプを作成する ReadLine()で行を取得できる
 func SjisReader(stdout io.ReadCloser) *textproto.Reader {
 	rio := transform.NewReader(stdout, japanese.ShiftJIS.NewDecoder())
 	return textproto.NewReader(bufio.NewReader(rio))
@@ -25,7 +25,7 @@ func FromSjis(str string) (string, error) {
 	return string(b), err
 }
 
-//
+//utf-3にする
 func AutoEnc(body string) (string, error) {
 	var f []byte
 	encodings := []string{"sjis", "utf-8"}
