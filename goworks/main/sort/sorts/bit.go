@@ -11,28 +11,18 @@ func Bitsort(data []int){
 	minb := blog2(min)
 	maxb := blog2(max)
 	pm := bsetpm(data[:])
-	bitp(data[pm:], maxb)
-	bitm(data[:pm], minb)
+	bitpm(data[pm:], maxb)
+	bitpm(data[:pm], minb)
 	
 }
 
-//+部分のソート
-func bitp(data []int, bnum int){
+//+-のそれぞれを部分ソート
+func bitpm(data []int, bnum int){
 	s := bset(data, bnum)
 	//fmt.Println(s, data[:])
 	if bnum > 0{
-		bitp(data[:s], bnum - 1)
-		bitp(data[s:], bnum - 1)
-	}
-}
-
-//-部分のソート
-func bitm(data []int, bnum int){
-	s := bset(data, bnum)
-	//fmt.Println(s, data[:])
-	if bnum > 0{
-		bitp(data[:s], bnum - 1)
-		bitp(data[s:], bnum - 1)
+		bitpm(data[:s], bnum - 1)
+		bitpm(data[s:], bnum - 1)
 	}
 }
 
@@ -43,7 +33,7 @@ func bset(data []int, bnum int) int{
 	}
 	start := 0
 	end := len(data) - 1
-	outer:for{
+	for{
 		for refbit(data[start], uint(bnum)) == 0{
 			if start == end{
 				return start + 1
@@ -52,18 +42,13 @@ func bset(data []int, bnum int) int{
 		}
 		for refbit(data[end], uint(bnum)) == 1{
 			if start == end{
-				break outer
+				return start
 			}
 			end--
 		}
 		data[start],data[end] = data[end],data[start]
 	}
 	return start
-}
-
-//任意のビット位置の値を参照する
-func refbit(i int, b uint) int {
-    return (i >> b) & 1
 }
 
 //+-振り分け
@@ -88,6 +73,11 @@ func bsetpm(data []int) int{
 		data[start],data[end] = data[end],data[start]
 	}
 	return start
+}
+
+//任意のビット位置の値を参照する
+func refbit(i int, b uint) int {
+    return (i >> b) & 1
 }
 
 //log_2(n)を返す
