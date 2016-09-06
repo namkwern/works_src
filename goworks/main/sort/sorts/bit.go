@@ -10,49 +10,55 @@ func Bitsort(data []int){
 	max, min := bmax(data[:])
 	minb := blog2(min)
 	maxb := blog2(max)
-	pm := bsetpm(data[:])
-	bitpm(data[pm:], maxb)
-	bitpm(data[:pm], minb)
+	minus, plus := bdivpm(data[:])
+	bitpm(plus, maxb)
+	bitpm(minus, minb)
 	
 }
 
-//+-のそれぞれを部分ソート
+//+-部分のソート
 func bitpm(data []int, bnum int){
-	s := bset(data, bnum)
+	L, R := bset(data, bnum)
 	//fmt.Println(s, data[:])
 	if bnum > 0{
-		bitpm(data[:s], bnum - 1)
-		bitpm(data[s:], bnum - 1)
+		bitpm(L, bnum - 1)
+		bitpm(R, bnum - 1)
 	}
 }
 
 //ビットソートの最小単位の交換処理
-func bset(data []int, bnum int) int{
+func bset(data []int, bnum int) ([]int, []int){
 	if len(data) <= 1{
-		return 0
+		return []int{}, []int{}
 	}
 	start := 0
 	end := len(data) - 1
-	for{
+	outer:for{
 		for refbit(data[start], uint(bnum)) == 0{
 			if start == end{
-				return start + 1
+				start++
+				break outer
 			}
 			start++
 		}
 		for refbit(data[end], uint(bnum)) == 1{
 			if start == end{
-				return start
+				break outer
 			}
 			end--
 		}
 		data[start],data[end] = data[end],data[start]
 	}
-	return start
+	return data[:start], data[start:]
+}
+
+//任意のビット位置の値を参照する
+func refbit(i int, b uint) int {
+    return (i >> b) & 1
 }
 
 //+-振り分け
-func bsetpm(data []int) int{
+func bdivpm(data []int) ([]int, []int){
 	start := 0
 	end := len(data) - 1
 	outer:for{
@@ -72,12 +78,7 @@ func bsetpm(data []int) int{
 		
 		data[start],data[end] = data[end],data[start]
 	}
-	return start
-}
-
-//任意のビット位置の値を参照する
-func refbit(i int, b uint) int {
-    return (i >> b) & 1
+	return data[:start], data[start:]
 }
 
 //log_2(n)を返す
