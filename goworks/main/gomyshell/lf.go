@@ -4,60 +4,92 @@ import(
 	"fmt"
 	"io/ioutil"
 	"flag"
-	"./my"
 	"strings"
 	"strconv"
 	"os"
 	"path/filepath"
+	"regexp"
+	"../my"
 )
 
+type reglist struct{
+	contain []*regexp.Regexp	//検索リスト
+	not []*regexp.Regexp		//否定検索リスト
+}
+
 var(
-	nFlag bool
-	rFlag bool
-	dFlag bool
-	fFlag bool
-	namesub []string
-	namesubnot []string
-	linesub []string
-	linesubnot []string
-	diresub []string
-	diresubnot []string
-	nameF bool
-	lineF bool
-	direF bool
+	nFlag bool		//-n
+	rFlag bool		//-r
+	dFlag bool		//-d
+	fFlag bool		//-f
+	tFlag bool		//-t
+	namesub reglist	//-name(n)=""　文字列
+	linesub reglist	//-line(n)=""
+	diresub reglist	//-dire(n)=""
+	nameF bool		//-name(n)　有無
+	lineF bool		//-line(n)
+	direF bool		//-dire(n)
 	count int
 	bottomCount int
 )
+
 func main(){
-	hF := flag.Bool("h", false, "ヘルプを表示する")
-	rF := flag.Bool("r", false, "!!!表示・処理過多注意!!!\n" +
-		"\tRecursive 下層のファイル/ディレクトリをすべて検索")
-	dF := flag.Bool("d", false, "Directory ディレクトリ検索モード")
-	fF := flag.Bool("f", false, "FullPath 絶対パス表示モード")
-	nF := flag.Bool("n", false, "!!!表示過多注意!!!\n" +
-		"\tnon-stop 行検索時にまとめて表示")
-	direS := flag.String("dire", "", "末端ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n" +
+	hF := flag.Bool("h", false, 
+		"ヘルプを表示する",
+	)
+	rF := flag.Bool("r", false, 
+		"!!!表示・処理過多注意!!!\n" +
+		"\tRecursive 下層のファイル/ディレクトリをすべて検索",
+	)
+	dF := flag.Bool("d", false, 
+		"Directory ディレクトリ検索モード",
+	)
+	fF := flag.Bool("f", false, 
+		"FullPath 絶対パス表示モード",
+	)
+	nF := flag.Bool("n", false, 
+		"!!!表示過多注意!!!\n" +
+		"\tnon-stop 行検索時にまとめて表示",
+	)
+	tF := flag.Bool("t", false, 
+		"Time 更新日時表示モード",
+	)
+	direS := flag.String("dire", "", 
+		"末端ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n" +
 		"\tディレクトリ名に対して正規表現で検索をかけます。\n" +
 		"\tカレントディレクトリは検索、表示対象から外されます。\n" +
 		"\t自動的に-rが有効になります。\n" +
-		"\tスペースは必ず\\sを指定してください。スペース区切りはAND")
-	direnS := flag.String("diren", "", "-direの否定検索版")
-	nameS := flag.String("name", "", "ファイル名検索。正規表現で検索します。\n" +
-		"\tスペースは必ず\\sを指定してください。スペース区切りはAND")
-	namenS := flag.String("namen", "", "-nameの否定検索版")
-	lineS := flag.String("line", "", "!!!表示・処理過多注意!!!\n" +
+		"\tスペースは必ず\\sを指定してください。スペース区切りはAND",
+	)
+	direnS := flag.String("diren", "", 
+		"-direの否定検索版",
+	)
+	nameS := flag.String("name", "", 
+		"ファイル名検索。正規表現で検索します。\n" +
+		"\tスペースは必ず\\sを指定してください。スペース区切りはAND",
+	)
+	namenS := flag.String("namen", "", 
+		"-nameの否定検索版",
+	)
+	lineS := flag.String("line", "", 
+		"!!!表示・処理過多注意!!!\n" +
 		"\t行検索。正規表現で検索します。\n" +
 		"\tスペースは必ず\\sを指定してください。スペース区切りはAND\n" +
-		"\t-nameを指定することで読み込むファイルを減らそう！")
-	linenS := flag.String("linen", "", "-lineの否定検索版")
-	fromS := flag.String("from", ".", "検索を開始するディレクトリ")
+		"\t-nameを指定することで読み込むファイルを減らそう！",
+	)
+	linenS := flag.String("linen", "", 
+		"-lineの否定検索版",
+	)
+	fromS := flag.String("from", ".", 
+		"検索を開始するディレクトリ",
+	)
 	
 	//-hでフラグ詳細表示
 	flag.Parse()
 	if *hF || len(flag.Args()) != 0{
 		fmt.Println("<ファイル検索ツール>")
 		fmt.Println("例:下層のjavaファイルからpublic要素を検索する")
-		fmt.Println("\tlook -r -name=\"java$\" -line=\"public\"")
+		fmt.Println("\tlf -r -name=\"java$\" -line=\"public\"")
 		fmt.Println()
 		flag.PrintDefaults()
 		return
@@ -68,18 +100,26 @@ func main(){
 	dFlag = *dF
 	fFlag = *fF
 	nFlag = *nF
-	diresub = strings.Split(*direS, " ")
-	diresubnot = strings.Split(*direnS, " ")
-	namesub = strings.Split(*nameS, " ")
-	namesubnot = strings.Split(*namenS, " ")
-	linesub = strings.Split(*lineS, " ")
-	linesubnot = strings.Split(*linenS, " ")
+	tFlag = *tF
+	reg, _ := regexp.Compile("\\s+")
+	diresub = reglist{
+		contain:	my.CompileAll(reg.Split(strings.Trim(*direS, " "), -1)),
+		not:		my.CompileAll(reg.Split(strings.Trim(*direnS, " "), -1)),
+	}
+	namesub = reglist{
+		contain:	my.CompileAll(reg.Split(strings.Trim(*nameS, " "), -1)),
+		not:		my.CompileAll(reg.Split(strings.Trim(*namenS, " "), -1)),
+	}
+	linesub = reglist{
+		contain:	my.CompileAll(reg.Split(strings.Trim(*lineS, " "), -1)),
+		not:		my.CompileAll(reg.Split(strings.Trim(*linenS, " "), -1)),
+	}
 	//フラグの有無判定
 	nameF = (*nameS != "") || (*namenS != "")
 	lineF = (*lineS != "") || (*linenS != "")
 	direF = (*direS != "") || (*direnS != "")
 	
-	//フラグエラー
+	//フラグ組み合わせなどのエラー
 	if dFlag && (lineF || nFlag){
 		fmt.Println("<-d(ディレクトリモード)を使用した場合は、-line/-linen(行検索)及び-n(連続表示)はすべて無効です>")
 		lineF = false
@@ -94,8 +134,10 @@ func main(){
 	}
 	//ファイル内検索指定ありで拡張子許可
 	if lineF{
-		namesub = append(namesub, "(\\.txt$|\\.java$|\\.go$|\\.c$|\\.cpp$|\\.bat$|\\.html$|\\.css$|\\.js$)")
+		namesub.contain = append(namesub.contain, regexp.MustCompile("(\\.txt$|\\.java$|\\.go$|\\.c$|\\.cpp$|\\.bat$|\\.html$|\\.css$|\\.js$)"))
+		namesub.not = append(namesub.not, my.CompileAll([]string{"\\.exe$", "\\.dll$"})...)
 	}
+	
 	
 	//ファイル探索開始(最後に\がなかったら付ける)
 	cur := strings.Replace(*fromS, "\\", "/", -1)
@@ -114,22 +156,21 @@ func main(){
 	}
 	
 	recu("./", !direF)
+	fmt.Print("\ndone.\n")
 	
 	//個数表示
-	var fileType string
 	if dFlag{
-		fileType = "Directorys"
+		fmt.Println(count, "Directorys")
+		if bottomCount > count{
+			count = bottomCount
+		}
+		if !(nameF || direF) && count != bottomCount{
+			fmt.Println(bottomCount, "Bottom Directorys")
+		}
 	}else{
-		fileType= "Files"
+		fmt.Println(count, "Files")
 	}
-	fmt.Print("\ndone.\n")
-	if bottomCount > count{
-		count = bottomCount
-	}
-	fmt.Println(count, fileType)
-	if !(nameF || direF) && dFlag && count != bottomCount{
-		fmt.Println(bottomCount, "Bottom Directorys")
-	}
+	
 }
 
 //カレントディレクトリ、ファイルパス
@@ -142,10 +183,13 @@ func recu(path string, dispflag bool) bool{
 			bt := false
 			if (nameF || direF){
 				if dFlag && dispflag{//ディレクトリ検索
-					if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+					if !nameF || my.MatchAll(v.Name(), namesub.contain, true) && my.MatchAll(v.Name(), namesub.not, false){
 						disp := path + v.Name()
 						if fFlag{//-fで絶対パス化
 							disp, _ = filepath.Abs(disp)
+						}
+						if tFlag{
+							disp += "\t" + v.ModTime().String()
 						}
 						fmt.Println(disp)
 						count++
@@ -153,16 +197,19 @@ func recu(path string, dispflag bool) bool{
 				}
 			}
 			if rFlag{//-rで再帰
-				b := !direF || my.MatchAll(v.Name(), diresub) && my.NotMatchAll(v.Name(), diresubnot)//ヒットしたディレクトリは表示許可
+				b := !direF || my.MatchAll(v.Name(), diresub.contain, true) && my.MatchAll(v.Name(), diresub.not, false)//ヒットしたディレクトリは表示許可
 				bt = recu(path + v.Name() + "/", b)
 			}
 			if !(nameF || direF){
 				if !rFlag || bt{//末端のディレクトリか、-r未指定
 					if dFlag && dispflag{//ディレクトリ検索
-						if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+						if !nameF || my.MatchAll(v.Name(), namesub.contain, true) && my.MatchAll(v.Name(), namesub.not, false){
 							disp := path + v.Name()
 							if fFlag{//-fで絶対パス化
 								disp, _ = filepath.Abs(disp)
+							}
+							if tFlag{
+								disp += "\t" + v.ModTime().String()
 							}
 							fmt.Println(disp)
 							bottomCount++
@@ -175,7 +222,7 @@ func recu(path string, dispflag bool) bool{
 			}
 		}else{
 			if !dFlag && dispflag{//-dなしでファイル検索
-				if !nameF || my.MatchAll(v.Name(), namesub) && my.NotMatchAll(v.Name(), namesubnot){
+				if my.MatchAll(v.Name(), namesub.contain, true) && my.MatchAll(v.Name(), namesub.not, false){
 					disp := path + v.Name()
 					if fFlag{//-fで絶対パス化
 						disp, _ = filepath.Abs(disp)
@@ -183,6 +230,9 @@ func recu(path string, dispflag bool) bool{
 					if lineF{
 						fileCheck(disp)
 					}else{
+						if tFlag{
+							disp += "\t" + v.ModTime().String()
+						}
 						fmt.Println(disp)
 						count++
 					}
@@ -200,10 +250,14 @@ func fileCheck(name string){
 	arr := strings.Split(str, "\n")
 	str = ""
 	for n, v := range arr{
-		if !lineF || my.MatchAll(v, linesub) && my.NotMatchAll(v, linesubnot){
+		if !lineF || my.MatchAll(v, linesub.contain, true) && my.MatchAll(v, linesub.not, false){
 			line := strings.Replace(v, "\t", " ", -1)
 			num := strconv.Itoa(n + 1)
-			str =  str + num + "\t" + line + "\n"
+			if len(line) <= 300{
+				str =  str + num + "\t" + line + "\n"
+			}else{
+				str =  str + num + "\t" + line[:300] + "(ry" + "\n"
+			}
 		}
 	}
 	filedisp(name, str)
@@ -223,7 +277,7 @@ func filedisp(name string, str string){
 			}
 		}
 		fmt.Println()
-		fmt.Print("▼[" + name + "]")
+		fmt.Print(name, " ->")
 		if !nFlag{
 			var s string
 			fmt.Scanln(&s)
@@ -240,7 +294,7 @@ func filedisp(name string, str string){
 			fmt.Println()
 		}
 		fmt.Println(str[:len(str) - 1])
-		fmt.Println("▲")
+		fmt.Println("[EOF]")
 		count++
 	}
 }
