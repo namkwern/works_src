@@ -103,21 +103,21 @@ func main(){
 	tFlag = *tF
 	reg, _ := regexp.Compile("\\s+")
 	diresub = reglist{
-		contain:	my.CompileAll(reg.Split(strings.Trim(*direS, " "), -1)),
-		not:		my.CompileAll(reg.Split(strings.Trim(*direnS, " "), -1)),
+		contain:	my.CompileAll(reg.Split(*direS, -1)),
+		not:		my.CompileAll(reg.Split(*direnS, -1)),
 	}
 	namesub = reglist{
-		contain:	my.CompileAll(reg.Split(strings.Trim(*nameS, " "), -1)),
-		not:		my.CompileAll(reg.Split(strings.Trim(*namenS, " "), -1)),
+		contain:	my.CompileAll(reg.Split(*nameS, -1)),
+		not:		my.CompileAll(reg.Split(*namenS, -1)),
 	}
 	linesub = reglist{
-		contain:	my.CompileAll(reg.Split(strings.Trim(*lineS, " "), -1)),
-		not:		my.CompileAll(reg.Split(strings.Trim(*linenS, " "), -1)),
+		contain:	my.CompileAll(reg.Split(*lineS, -1)),
+		not:		my.CompileAll(reg.Split(*linenS, -1)),
 	}
 	//フラグの有無判定
-	nameF = (*nameS != "") || (*namenS != "")
-	lineF = (*lineS != "") || (*linenS != "")
-	direF = (*direS != "") || (*direnS != "")
+	direF = len(diresub.contain) != 0 || len(diresub.not) != 0
+	nameF = len(namesub.contain) != 0 || len(namesub.not) != 0
+	lineF = len(linesub.contain) != 0 || len(linesub.not) != 0
 	
 	//フラグ組み合わせなどのエラー
 	if dFlag && (lineF || nFlag){
