@@ -55,7 +55,7 @@ func main(){
 		"Time 更新日時表示モード",
 	)
 	direS := flag.String("dire", "", 
-		"末端ディレクトリ名検索。ヒットしたディレクトリの直下しか表示しません。\n" +
+		"ディレクトリ名検索。ヒットしたディレクトリより下層しか表示しません。\n" +
 		"\tディレクトリ名に対して正規表現で検索をかけます。\n" +
 		"\tカレントディレクトリは検索、表示対象から外されます。\n" +
 		"\t自動的に-rが有効になります。\n" +
@@ -197,7 +197,7 @@ func recu(path string, dispflag bool) bool{
 				}
 			}
 			if rFlag{//-rで再帰
-				b := !direF || my.MatchAll(v.Name(), diresub.contain, true) && my.MatchAll(v.Name(), diresub.not, false)//ヒットしたディレクトリは表示許可
+				b := !direF || dispflag || my.MatchAll(v.Name(), diresub.contain, true) && my.MatchAll(v.Name(), diresub.not, false)//ヒットしたディレクトリは表示許可
 				bt = recu(path + v.Name() + "/", b)
 			}
 			if !(nameF || direF){
@@ -281,13 +281,12 @@ func filedisp(name string, str string){
 		if !nFlag{
 			var s string
 			fmt.Scanln(&s)
-			if s == "skip" || s == "s"{
+			switch(s){
+			case "skip", "s":
 				return
-			}
-			if s == "exit" || s == "e"{
+			case "exit", "e":
 				os.Exit(1)
-			}
-			if s == "all" || s == "a"{
+			case "all", "a":
 				nFlag = true
 			}
 		}else{
