@@ -25,7 +25,7 @@ func FromSjis(str string) (string, error) {
 	return string(b), err
 }
 
-//utf-3にする
+//自動でエンコードsjis or utf-8
 func AutoEnc(body string) (string, error) {
 	var f []byte
 	encodings := []string{"sjis", "utf-8"}

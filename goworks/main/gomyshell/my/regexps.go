@@ -1,45 +1,38 @@
 package my
 
 import (
-	"fmt"
 	"regexp"
+	"os"
+	"fmt"
 )
 
-//すべての正規表現殿完全一致判定 (文字列,正規表現配列)
-func MatchAll(str string, arr []string) bool {
+//すべての正規表現殿完全一致判定 (文字列,正規表現配列) 
+//f=true すべて含む　f=false 一つも含まない
+func MatchAll(str string, arr []*regexp.Regexp, f bool) bool {
 	for _, v := range arr {
-		reg := regexp.MustCompile(v)
-		if !reg.MatchString(str) {
+		flg := v.MatchString(str)
+		if f{
+			flg = !flg
+		}
+		if flg{
 			return false
 		}
 	}
 	return true
 }
 
-//すべての正規表現殿完全不一致判定 (文字列,正規表現配列)
-func NotMatchAll(str string, arr []string) bool {
-	for _, v := range arr {
-		reg := regexp.MustCompile(v)
-		if v == "" {
+func CompileAll(s []string) []*regexp.Regexp{
+	regs := []*regexp.Regexp{}
+	for _, v := range s{
+		if v == ""{
 			continue
 		}
-		if reg.MatchString(str) {
-			return false
+		reg, err := regexp.Compile(v)
+		if err != nil{
+			fmt.Println("正規表現エラー:", err)
+			os.Exit(1)
 		}
+		regs = append(regs, reg)
 	}
-	return true
-}
-
-//すべての正規表現殿完全一致判定、判定が通ったらそのまま出力する (文字列,正規表現配列)
-func MatchAllPrintln(str string, arr []string) {
-	findF := true
-	for _, v := range arr {
-		reg := regexp.MustCompile(v)
-		if !reg.MatchString(str) {
-			findF = false
-		}
-	}
-	if findF {
-		fmt.Println(str)
-	}
+	return regs
 }
