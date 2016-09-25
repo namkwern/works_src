@@ -5,11 +5,10 @@ import(
 	"io/ioutil"
 	"flag"
 	"strings"
-	"strconv"
 	"os"
 	"path/filepath"
 	"regexp"
-	"../my"
+	"./my"
 )
 
 type reglist struct{
@@ -32,43 +31,43 @@ func (r reglist)checkNot(str string) (bool){
 }
 
 var(
-	nFlag bool		//-n
+	aFlag bool		//-n
 	rFlag bool		//-r
 	dFlag bool		//-d
 	fFlag bool		//-f
 	tFlag bool		//-t
+	usFlag bool		//-unsafe
 	namesub reglist	//-name(n)=""　文字列
 	linesub reglist	//-line(n)=""
 	diresub reglist	//-dire(n)=""
 	nameF bool		//-name(n)　有無
 	lineF bool		//-line(n)
 	direF bool		//-dire(n)
-	direoF bool		//-dire
-	direnF bool		//-diren
-	count int
-	bottomCount int
 )
 
 func main(){
 	hF := flag.Bool("h", false, 
 		"ヘルプを表示する",
 	)
-	rF := flag.Bool("r", false, 
+	flag.BoolVar(&rFlag, "r", false, 
 		"!!!表示・処理過多注意!!!\n" +
 		"\tRecursive 下層のファイル/ディレクトリをすべて検索",
 	)
-	dF := flag.Bool("d", false, 
+	flag.BoolVar(&dFlag, "d", false, 
 		"Directory ディレクトリ検索モード",
 	)
-	fF := flag.Bool("f", false, 
+	flag.BoolVar(&fFlag, "f", false, 
 		"FullPath 絶対パス表示モード",
 	)
-	nF := flag.Bool("n", false, 
+	flag.BoolVar(&aFlag, "a", false, 
 		"!!!表示過多注意!!!\n" +
 		"\tnon-stop 行検索時にまとめて表示",
 	)
-	tF := flag.Bool("t", false, 
+	flag.BoolVar(&tFlag, "t", false, 
 		"Time 更新日時表示モード(未実装です)",
+	)
+	flag.BoolVar(&usFlag, "unsafe", false,
+		"アンセーフ バイナリファイル等を判断せず表示する",
 	)
 	direS := flag.String("dire", "", 
 		"ディレクトリ名検索。ヒットしたディレクトリより下層しか表示しません。\n" +
@@ -112,11 +111,6 @@ func main(){
 	}
 	
 	//フラグの受け取り
-	rFlag = *rF
-	dFlag = *dF
-	fFlag = *fF
-	nFlag = *nF
-	tFlag = *tF
 	reg, _ := regexp.Compile("\\s+")
 	diresub = reglist{
 		contain:	my.CompileAll(reg.Split(*direS, -1)),
@@ -131,31 +125,31 @@ func main(){
 		not:		my.CompileAll(reg.Split(*linenS, -1)),
 	}
 	//フラグの有無判定
-	direoF = len(diresub.contain) != 0
-	direnF = len(diresub.not) != 0
-	direF = direoF || direnF
+	direF = len(diresub.contain) != 0 || len(diresub.not) != 0
 	nameF = len(namesub.contain) != 0 || len(namesub.not) != 0
 	lineF = len(linesub.contain) != 0 || len(linesub.not) != 0
 	
 	//フラグ組み合わせなどのエラー
-	if dFlag && (lineF || nFlag){
+	switch{
+	case dFlag && (lineF || aFlag):
 		fmt.Println("<-d(ディレクトリモード)を使用した場合は、-line/-linen(行検索)及び-n(連続表示)はすべて無効です>")
-		lineF = false
-		nFlag = false
-	}
-	if !lineF && nFlag{
+		return
+	case !lineF && aFlag:
 		fmt.Println("<-line/-linen(行検索)を指定していないので-n(連続表示)は無効です>\n")
-	}
-	if !rFlag && direF{
+		return
+	case !rFlag && direF:
 		fmt.Println("<-r(再起モード)を指定していないので-dire(ディレクトリ名検索)は使用できません。>\n")
 		return
 	}
-	//ファイル内検索指定ありで拡張子許可
-	if lineF{
+	//エラー以外のフラグ処理
+	if lineF && !usFlag{				//ファイル内検索指定ありで拡張子許可
 		namesub.contain = append(namesub.contain, regexp.MustCompile("(\\.txt$|\\.java$|\\.go$|\\.c$|\\.cpp$|\\.bat$|\\.html$|\\.css$|\\.js$)"))
 		namesub.not = append(namesub.not, my.CompileAll([]string{"\\.exe$", "\\.dll$"})...)
 	}
-	
+	if *fromS != "."{//-fromを指定した時のパス表示
+		disp, _ := os.Getwd()
+		fmt.Println("< from = " + disp + " >\n")
+	}
 	
 	//ファイル探索開始(最後に\がなかったら付ける)
 	cur := strings.Replace(*fromS, "\\", "/", -1)
@@ -164,16 +158,47 @@ func main(){
 	}
 	err := os.Chdir(cur)
 	if err != nil{
-		fmt.Println("-from指定エラー")
+		fmt.Println("< -from指定エラー >")
 		return
 	}
 	
-	if *fromS != "."{
-		disp, _ := os.Getwd()
-		fmt.Println("< from = " + disp + " >\n")
+	//************メイン処理*************//
+	var(
+		headch = make(chan string)
+		bodych = make(chan string)
+		count, bottomCount int
+		first = true
+	)
+	go recu("./", true, headch, bodych)
+	for head := range headch{
+		if lineF && !aFlag && first{
+			fmt.Println("次を表示しない>skip(s)")
+			fmt.Println("中断>exit(e)")
+			fmt.Println("まとめて表示>all(a)")
+			fmt.Println("次の内容を表示>Enter")
+			fmt.Println()
+			first = false
+		}
+		if head != ""{
+			fmt.Print(head)
+			bottomCount++
+		}
+		if lineF{
+			if !aFlag{
+				var s string
+				fmt.Scanln(&s)
+				switch(s){
+				case "skip", "s":	return
+				case "exit", "e":	os.Exit(1)
+				case "all", "a":	aFlag = true
+				}
+			}else{
+				fmt.Println()
+			}
+			fmt.Println( <-bodych + "\n")
+		}
+		count++
 	}
-	
-	recu("./")
 	fmt.Print("\ndone.\n")
 	
 	//個数表示
@@ -188,61 +213,60 @@ func main(){
 	}else{
 		fmt.Println(count, "Files")
 	}
-	
 }
 
 //再帰的にディレクトリを探索する関数
 //引数1:カレントディレクトリ
 //戻り値1:末端ディレクトリ判定(再帰時に使用)
-func recu(path string) bool{
-	bottom := true//末端ディレクトリを判定
+func recu(path string, top bool, headch, bodych chan string) (bottom bool){
+	bottom = true//末端ディレクトリを判定
 	fds, _ := ioutil.ReadDir(path)
 	for _, v := range fds{
 		if v.IsDir(){
 			bottom = false
-			if (nameF || direF){
-				f := true
+			func(){
 				switch false{
-					case dFlag: f = false						//ディレクトリ検索
-					case namesub.check(v.Name()): f = false		//名前と正規表現の一致を検証
-					case diresub.checkContain(path): f = false	//パスと正規表現の一致を検証
+					case nameF || direF:			return	//検索用フラグ使用
+					case dFlag:						return	//ディレクトリ検索
+					case namesub.check(v.Name()):	return	//名前と正規表現の一致を検証
+					case diresub.checkContain(path):return	//パスと正規表現の一致を検証
 				}
-				if f{
-					fmt.Println(pathFormat(v, path))
-					count++
-				}
-			}
-			bt := false
-			if rFlag{										//-rで再帰
-				if diresub.checkNot(v.Name()){				//-direnで指定されたディレクトリを除外
-					bt = recu(path + v.Name() + "/")
-				}
-			}
-			if !(nameF || direF){
-				if dFlag{
-					count++
-				}
+				headch <- pathFormat(v, path) + "\n"
+			}()
+			bt := func() (bt bool){
 				switch false{
-					case dFlag: continue			//ディレクトリ検索
-					case !rFlag || bt: continue		//末端のディレクトリか、-r未指定(通常の表示)
+					case rFlag:							return	//-rで再帰
+					case diresub.checkNot(v.Name()):	return	//-direnで指定されたディレクトリを除外
 				}
-				fmt.Println(pathFormat(v, path))
-				bottomCount++
-			}
+				return recu(path + v.Name() + "/", false, headch, bodych)
+			}()
+			func(){
+				switch false{
+					case !(nameF || direF):	return		//検索用フラグ不使用
+					case dFlag:				return		//ディレクトリ検索
+				}
+				disp := ""		//初期値なら表示せずcountを進める
+				if !rFlag || bt{//末端のディレクトリか、-r未指定(通常の表示)
+					disp = pathFormat(v, path) + "\n"
+				}
+				headch <- disp
+			}()
 		}else{
 			switch false{
-				case !dFlag: continue						//ファイル検索
-				case namesub.check(v.Name()): continue		//名前と正規表現の一致を検証
-				case diresub.checkContain(path): continue	//パスと正規表現の一致を検証
+				case !dFlag:					continue						//ファイル検索
+				case namesub.check(v.Name()):	continue		//名前と正規表現の一致を検証
+				case diresub.checkContain(path):continue	//パスと正規表現の一致を検証
 			}
 			disp := pathFormat(v, path)
 			if lineF{										//-line等を使用してファイルの内部を参照
-				fileCheck(pathFormat(v, path), disp)
+				fileCheck(path + v.Name(), disp, headch, bodych)
 			}else{
-				fmt.Println(disp)
-				count++
+				headch <- disp + "\n"
 			}
 		}
+	}
+	if top{
+		close(headch)
 	}
 	return bottom
 }
@@ -263,58 +287,26 @@ func pathFormat(v os.FileInfo, path string) (name string){
 //ファイル内文字列を探索して、発見したらfiledispを呼び出す
 //引数1:ファイル名
 //引数2:表示テキスト
-func fileCheck(file, disp string){
+func fileCheck(file, disp string, headch, bodych chan string){
 	filestr, _ := ioutil.ReadFile(file)
 	str, _ := my.AutoEnc(string(filestr))
 	arr := strings.Split(str, "\n")
 	str = ""
 	for n, v := range arr{
 		switch false{
-			case linesub.check(v): continue
+			case linesub.check(v):	continue
 		}
 		line := strings.Replace(v, "\t", " ", -1)
-		num := strconv.Itoa(n + 1)
+		str += fmt.Sprintf("%-6d", n + 1)
 		if len(line) <= 300{
-			str += num + "\t" + line + "\n"
+			str += line + "\n"
 		}else{
-			str += num + "\t" + line[:300] + "(ry" + "\n"
+			str += line[:300] + "(ry" + "\n"
 		}
 	}
-	filedisp(disp, str)
-}
-
-//ファイル内容を表示
-//引数1:ファイルとして表示する文字列
-//引数2:ファイル内文字列
-var first = true
-func filedisp(name, str string){
-	if str == ""{
-		return
+	
+	if str != ""{
+		headch <- disp + " ->"
+		bodych <- str + "[EOF]"
 	}
-	if !nFlag && first{//最初のメッセージ
-		fmt.Println("次を表示しない>skip(s)")
-		fmt.Println("中断>exit(e)")
-		fmt.Println("まとめて表示>all(a)")
-		fmt.Println("次の内容を表示>Enter")
-		first = false
-	}
-	fmt.Println()
-	fmt.Print(name, " ->")
-	if !nFlag{
-		var s string
-		fmt.Scanln(&s)
-		switch(s){
-		case "skip", "s":
-			return
-		case "exit", "e":
-			os.Exit(1)
-		case "all", "a":
-			nFlag = true
-		}
-	}else{
-		fmt.Println()
-	}
-	fmt.Println(str[:len(str) - 1])
-	fmt.Println("[EOF]")
-	count++
 }
