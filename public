@@ -14,7 +14,7 @@ direction = {
 
 //引数：チェックしたい支点のxy座標
 void direction_check(cx, cy){
-	for(int n = 0, n < direction; n++){	  //0方向をすべて確認
+	for(int n = 0, n < 8; n++){	  //0方向をすべて確認
 		int dx = cx;				//引数から頂いた現在の座標
 		int dy = cy;
 		while(cell_judge(dx, dy)){  //範囲内なら継続
