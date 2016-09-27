@@ -50,8 +50,8 @@ func main(){
 		"ヘルプを表示する",
 	)
 	flag.BoolVar(&rFlag, "r", false, 
-		"!!!表示・処理過多注意!!!\n" +
-		"\tRecursive 下層のファイル/ディレクトリをすべて検索",
+		`!!!表示・処理過多注意!!!
+	Recursive 下層のファイル/ディレクトリをすべて検索`,
 	)
 	flag.BoolVar(&dFlag, "d", false, 
 		"Directory ディレクトリ検索モード",
@@ -60,8 +60,8 @@ func main(){
 		"FullPath 絶対パス表示モード",
 	)
 	flag.BoolVar(&aFlag, "a", false, 
-		"!!!表示過多注意!!!\n" +
-		"\tnon-stop 行検索時にまとめて表示",
+		`!!!表示過多注意!!!
+	non-stop 行検索時にまとめて表示`,
 	)
 	flag.BoolVar(&tFlag, "t", false, 
 		"Time 更新日時表示モード(未実装です)",
@@ -70,27 +70,27 @@ func main(){
 		"アンセーフ バイナリファイル等を判断せず表示する",
 	)
 	direS := flag.String("dire", "", 
-		"ディレクトリ名検索。ヒットしたディレクトリより下層しか表示しません。\n" +
-		"\tディレクトリ名に対して正規表現で検索をかけます。\n" +
-		"\tカレントディレクトリは検索、表示対象から外されます。\n" +
-		"\t実行には必ず-rが必要です。\n" +
-		"\tスペースは必ず\\sを指定してください。スペース区切りはAND",
+		`ディレクトリ名検索。ヒットしたディレクトリより下層しか表示しません。
+	ディレクトリ名に対して正規表現で検索をかけます。
+	カレントディレクトリは検索、表示対象から外されます。
+	実行には必ず-rが必要です。
+	スペースは必ず\\sを指定してください。スペース区切りはAND`,
 	)
 	direnS := flag.String("diren", "", 
 		"-direの否定検索版",
 	)
 	nameS := flag.String("name", "", 
-		"ファイル名検索。正規表現で検索します。\n" +
-		"\tスペースは必ず\\sを指定してください。スペース区切りはAND",
+		`ファイル名検索。正規表現で検索します。
+	スペースは必ず\\sを指定してください。スペース区切りはAND`,
 	)
 	namenS := flag.String("namen", "", 
 		"-nameの否定検索版",
 	)
 	lineS := flag.String("line", "", 
-		"!!!表示・処理過多注意!!!\n" +
-		"\t行検索。正規表現で検索します。\n" +
-		"\tスペースは必ず\\sを指定してください。スペース区切りはAND\n" +
-		"\t-nameを指定することで読み込むファイルを減らそう！",
+		`!!!表示・処理過多注意!!!
+	行検索。正規表現で検索します。
+	スペースは必ず\\sを指定してください。スペース区切りはAND
+	-nameを指定することで読み込むファイルを減らそう！`,
 	)
 	linenS := flag.String("linen", "", 
 		"-lineの否定検索版",
@@ -164,13 +164,12 @@ func main(){
 	
 	//************メイン処理*************//
 	var(
-		headch = make(chan string)
-		bodych = make(chan string)
+		ch = make(chan string, 30)
 		count, bottomCount int
 		first = true
 	)
-	go recu("./", true, headch, bodych)
-	for head := range headch{
+	go recu("./", true, ch)
+	for name := range ch{
 		if lineF && !aFlag && first{
 			fmt.Println("次を表示しない>skip(s)")
 			fmt.Println("中断>exit(e)")
@@ -179,8 +178,8 @@ func main(){
 			fmt.Println()
 			first = false
 		}
-		if head != ""{
-			fmt.Print(head)
+		if name != ""{
+			fmt.Print(name)
 			bottomCount++
 		}
 		if lineF{
@@ -195,7 +194,7 @@ func main(){
 			}else{
 				fmt.Println()
 			}
-			fmt.Println( <-bodych + "\n")
+			fmt.Println( <-ch + "\n")
 		}
 		count++
 	}
@@ -218,7 +217,7 @@ func main(){
 //再帰的にディレクトリを探索する関数
 //引数1:カレントディレクトリ
 //戻り値1:末端ディレクトリ判定(再帰時に使用)
-func recu(path string, top bool, headch, bodych chan string) (bottom bool){
+func recu(path string, top bool, ch chan string) (bottom bool){
 	bottom = true//末端ディレクトリを判定
 	fds, _ := ioutil.ReadDir(path)
 	for _, v := range fds{
@@ -231,14 +230,14 @@ func recu(path string, top bool, headch, bodych chan string) (bottom bool){
 					case namesub.check(v.Name()):	return	//名前と正規表現の一致を検証
 					case diresub.checkContain(path):return	//パスと正規表現の一致を検証
 				}
-				headch <- pathFormat(v, path) + "\n"
+				ch <- pathFormat(v, path) + "\n"
 			}()
 			bt := func() (bt bool){
 				switch false{
 					case rFlag:							return	//-rで再帰
 					case diresub.checkNot(v.Name()):	return	//-direnで指定されたディレクトリを除外
 				}
-				return recu(path + v.Name() + "/", false, headch, bodych)
+				return recu(path + v.Name() + "/", false, ch)
 			}()
 			func(){
 				switch false{
@@ -249,7 +248,7 @@ func recu(path string, top bool, headch, bodych chan string) (bottom bool){
 				if !rFlag || bt{//末端のディレクトリか、-r未指定(通常の表示)
 					disp = pathFormat(v, path) + "\n"
 				}
-				headch <- disp
+				ch <- disp
 			}()
 		}else{
 			switch false{
@@ -259,14 +258,14 @@ func recu(path string, top bool, headch, bodych chan string) (bottom bool){
 			}
 			disp := pathFormat(v, path)
 			if lineF{										//-line等を使用してファイルの内部を参照
-				fileCheck(path + v.Name(), disp, headch, bodych)
+				fileCheck(path + v.Name(), disp, ch)
 			}else{
-				headch <- disp + "\n"
+				ch <- disp + "\n"
 			}
 		}
 	}
 	if top{
-		close(headch)
+		close(ch)
 	}
 	return bottom
 }
@@ -287,7 +286,7 @@ func pathFormat(v os.FileInfo, path string) (name string){
 //ファイル内文字列を探索して、発見したらfiledispを呼び出す
 //引数1:ファイル名
 //引数2:表示テキスト
-func fileCheck(file, disp string, headch, bodych chan string){
+func fileCheck(file, disp string, ch chan string){
 	filestr, _ := ioutil.ReadFile(file)
 	str, _ := my.AutoEnc(string(filestr))
 	arr := strings.Split(str, "\n")
@@ -306,7 +305,7 @@ func fileCheck(file, disp string, headch, bodych chan string){
 	}
 	
 	if str != ""{
-		headch <- disp + " ->"
-		bodych <- str + "[EOF]"
+		ch <- disp + " ->"
+		ch <- str + "[EOF]"
 	}
 }
