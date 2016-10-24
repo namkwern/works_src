@@ -8,17 +8,17 @@ import(
 )
 
 func main(){
-	data := makeArr2(200000)
+	data := arr1(200000)
 	
 	fmt.Println(data[:10], data[len(data) - 10:])
 	
 	s := time.Now()
-	sorts.Bitsort(data)//ソートの実行
+	sorts.Qsort(data)//ソートの実行
 	e := time.Now()
 	
 	for n, v := range data{
 		if n != 0 && data[n - 1] > v{
-			fmt.Println("Error!!")
+			fmt.Println("Error!! n =", n, data[n:n + 2])
 			break
 		}
 	}
@@ -27,7 +27,7 @@ func main(){
 	fmt.Println(data[:100])
 }
 
-func ranArr1(size int) []int{
+func arr1(size int) []int{
 	fmt.Print("乱数のシード値を入力してください:")
 	var i int64
 	fmt.Scanf("%d", &i)//乱数のシード値入力
@@ -35,7 +35,7 @@ func ranArr1(size int) []int{
 	return rand.Perm(size)//ランダムスライス生成
 }
 
-func makeArr1(size int) []int{
+func arr2(size int) []int{
 	data := make([]int, size)
 	for n, _ := range data{
 		data[n] = n
@@ -43,7 +43,7 @@ func makeArr1(size int) []int{
 	return data[:]
 }
 
-func makeArr2(size int) []int{
+func arr3(size int) []int{
 	data := make([]int, size)
 	for n, _ := range data{
 		data[n] = n

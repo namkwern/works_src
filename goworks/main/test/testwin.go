@@ -15,19 +15,20 @@ func main() {
 	ins := winapi.GetModuleHandle(nil)
 	pc, _ := syscall.UTF16PtrFromString("文字")
 	pt, _ := syscall.UTF16PtrFromString("タイトル")
-	var wc winapi.WNDCLASSEX
 	
-	wc.CbSize        = uint32(unsafe.Sizeof(winapi.WNDCLASSEX{}))//必須
-	wc.Style         = 0
-	wc.LpfnWndProc   = syscall.NewCallback(windowProc)//必須?
-	wc.CbClsExtra    = 0
-	wc.CbWndExtra    = 0
-	wc.HInstance     = ins
-	wc.HIcon         = winapi.LoadIcon(ins, winapi.MAKEINTRESOURCE(132))
-	wc.HCursor       = winapi.HCURSOR(winapi.LoadImage(0, winapi.MAKEINTRESOURCE(winapi.IDC_CROSS), winapi.IMAGE_CURSOR, 0, 0, winapi.LR_DEFAULTCOLOR))
-	wc.HbrBackground = winapi.HBRUSH(winapi.GetStockObject(winapi.WHITE_BRUSH))
-	wc.LpszMenuName  = nil
-	wc.LpszClassName = pc
+	wc := winapi.WNDCLASSEX{
+		CbSize        : uint32(unsafe.Sizeof(winapi.WNDCLASSEX{})),//必須
+		Style         : 0,
+		LpfnWndProc   : syscall.NewCallback(windowProc),//必須?
+		CbClsExtra    : 0,
+		CbWndExtra    : 0,
+		HInstance     : ins,
+		HIcon         : winapi.LoadIcon(ins, winapi.MAKEINTRESOURCE(132)),
+		HCursor       : winapi.HCURSOR(winapi.LoadImage(0, winapi.MAKEINTRESOURCE(winapi.IDC_CROSS), winapi.IMAGE_CURSOR, 0, 0, winapi.LR_DEFAULTCOLOR)),
+		HbrBackground : winapi.HBRUSH(winapi.GetStockObject(winapi.WHITE_BRUSH)),
+		LpszMenuName  : nil,
+		LpszClassName : pc,
+	}
 	if int(winapi.RegisterClassEx(&wc)) == 0{
 		return
 	}

@@ -1,7 +1,7 @@
 package main
 
 import(
-	"./my"
+	"../my"
 	"fmt"
 	"strings"
 )

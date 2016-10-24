@@ -1,0 +1,27 @@
+[ 
+{ 
+"id": 1, 
+"student": "タカハシ", 
+"class": "桜" 
+}, 
+{ 
+"id": 2, 
+"student": "スズキ", 
+"class": "桜" 
+}, 
+{ 
+"id": 3, 
+"student": "タナカ", 
+"class": "桜" 
+}, 
+{ 
+"id": 4, 
+"student": "イシバシ", 
+"class": "梅" 
+}, 
+{ 
+"id": 5, 
+"student": "ナカヤマ", 
+"class": "梅" 
+} 
+]

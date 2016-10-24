@@ -6,8 +6,8 @@ import(
 	"fmt"
 )
 
-//実行してcmdとioのパイプ取得
-func Execute(command []string) string{
+
+func Execute(command ...string) string{
 	cmd := exec.Command(command[0], command[1:]...)
 	str, _ := cmd.CombinedOutput()
 	return string(str)

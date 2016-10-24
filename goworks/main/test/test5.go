@@ -1,13 +1,23 @@
 package main
-import(
-	"fmt"
-	//"net"
-	"net/http"
-	"io/ioutil"
+
+import (
+	"golang.org/x/tour/pic"
+	"image/color"
+	"image"
 )
 
-func main(){
-	res, _ := http.Get("http://google.co.jp/")
-	body, _ := ioutil.ReadAll(res.Body)
-	fmt.Printf("\n\n%s\n\n", string(body))
+type Image struct{}
+func (i Image)Bounds() image.Rectangle{
+	return image.Rect(0,0,300,300)
+}
+func (i Image)ColorModel() color.Model{
+	return color.RGBAModel
+}
+func (i Image)At(x, y int) color.Color{
+	return color.RGBA{0, 0, 255, 255}
+}
+
+func main() {
+	m := Image{}
+	pic.ShowImage(m)
 }
