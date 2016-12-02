@@ -1,26 +1,38 @@
-direction = {
-	{-1, -1},//左上
-	{0, -1},//上
-	{1, -1},//右上
-	
-	{-1, 0},//左
-	//{0, 0},//変化量00はありえない
-	{1, 0},//右
-	
-	{-1, 1},//左下
-	{0, 1},//下
-	{1, 1},//右下
-}
+<html>
+<head>
+</head>
+<meta charset="utf-8">
+<title>Firebase 送受信サンプル</title>
+</head>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 
-//引数：チェックしたい支点のxy座標
-void direction_check(cx, cy){
-	for(int n = 0, n < 8; n++){	  //0方向をすべて確認
-		int dx = cx;				//引数から頂いた現在の座標
-		int dy = cy;
-		while(cell_judge(dx, dy)){  //範囲内なら継続
-			dx += direction[n][0];      //x方向の変化量が入る
-			dy += direction[n][1];      //y方向の変化量が入る
-      array[dx][dy];//***主な処理をここでする***//
-		}
-	}
+<!-- ==========ここからコピペ========== -->
+
+<!-- ==========ここまでコピペ========== -->
+
+<script>
+var db = firebase.database()
+//受信処理
+db.ref('test').on('value', function(dss){
+	$('#text').css('color', dss.val())
+	$('#text').text(dss.val())
+	// ミリ秒の表示
+	d = new Date();
+	ss = d.getSeconds();
+	dd = d.getMilliseconds();
+	$('#time').text(ss + '.' + dd + '秒')
+})
+
+// 送信処理
+var sw = true
+function send(){
+	sw = !sw
+	db.ref('test').set(!sw ? 'green' : 'blue')
 }
+</script>
+<body>
+<input type="button" value="送信" onclick="send()">
+<div style="font-size:1000%; text-align:center;" id="text"></div>
+<div style="font-size:300%" id="time"></div>
+</body>
+</html>
